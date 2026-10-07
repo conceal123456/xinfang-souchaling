@@ -67,10 +67,10 @@ SCENES_CONFIG = [
 ]
 
 def find_image_file(filename):
-    """优先在当前目录查找，若无则在 stills 目录查找"""
+    """优先在当前目录查找，若无则在 剧照 目录查找"""
     if os.path.exists(filename):
         return filename
-    sub_path = os.path.join("stills", filename)
+    sub_path = os.path.join("剧照", filename)
     if os.path.exists(sub_path):
         return sub_path
     return None

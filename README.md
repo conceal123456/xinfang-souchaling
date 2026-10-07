@@ -5,13 +5,12 @@
 
 ## 目录
 
-- `01_参赛材料/` 通知与附件1-3（规则、报名表、剧本格式说明）
-- `02_剧本/` 源稿(.docx)、提交版(.pdf)、台词文本(.txt)
-- `03_素材/参考/` 参考视频字幕等
-- `04_脚本/` 生成与校验脚本（含草稿导出测试脚本 test_preview.py）
-- `stills/` 8 张分镜剧照（**脚本默认取图目录，勿改名勿移动**）
-- `preview_slides/` 11 页导出预览图，可由脚本重建
-- `99_待删/` 临时、测试与重复文件（test_* 草稿、~$ 锁文件、与 stills/ 重复的 8 张剧照），确认无用后可整体删除
+- `参赛材料/` 通知与附件1-3（规则、报名表、剧本格式说明）
+- `剧本/` 源稿(.docx)、提交版(.pdf)、台词文本(.txt)
+- `素材/参考/` 参考视频字幕等
+- `脚本/` 生成与校验脚本（含草稿导出测试脚本 test_preview.py）
+- `剧照/` 8 张分镜剧照（**脚本默认取图目录，勿改名勿移动**）
+- `预览图/` 11 页导出预览，可由脚本重建（不入库）
 
 ## 交付物
 
@@ -22,13 +21,13 @@
 
 ```bash
 cd D:\develop\心理
-python 04_脚本\build_template_ppt.py     # 生成中间模板
-python 04_脚本\run_agent_pipeline.py     # 注入 stills\ 8 张剧照 -> 最终放映版
-python 04_脚本\verify_final_ppt.py       # 校验 11 页 / 16:9 / 图层顺序 / 致谢页 / 场控表
-python 04_脚本\export_all_slides.py      # 导出 preview_slides\（需本机 PowerPoint）
+python 脚本\build_template_ppt.py     # 生成中间模板
+python 脚本\run_agent_pipeline.py     # 注入 剧照\ 8 张剧照 -> 最终放映版
+python 脚本\verify_final_ppt.py       # 校验 11 页 / 16:9 / 图层顺序 / 致谢页 / 场控表
+python 脚本\export_all_slides.py      # 导出 预览图\（需本机 PowerPoint）
 ```
 
 ## 注意
 
 - 脚本按"当前工作目录"找文件，务必先 `cd` 到项目根目录再执行。
-- `git` 仓库已初始化；`preview_slides/`、`99_待删/`、测试草稿不入库。
+- `git` 仓库已初始化；`预览图/`、`__pycache__/` 等可再生产物不入库。

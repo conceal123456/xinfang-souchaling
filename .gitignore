@@ -1,10 +1,9 @@
 # 可再生产物（脚本可重建）
-preview_slides/
+预览图/
 __pycache__/
 *.pyc
 
 # 临时/测试/重复文件
-99_待删/
 test_*.png
 test_*.pptx
 ~$*

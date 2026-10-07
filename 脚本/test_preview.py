@@ -15,7 +15,7 @@ def test_preview():
     slide = prs.slides.add_slide(blank_layout)
 
     # 1. 插入全屏 16:9 剧照
-    pic = slide.shapes.add_picture('scene_02.jpg', Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
+    pic = slide.shapes.add_picture('剧照/scene_02.jpg', Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
 
     # 2. 顶部悬浮信息条 (半透明深色玻璃质感)
     top_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.25), Inches(11.733), Inches(0.78))

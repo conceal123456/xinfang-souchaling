@@ -10,7 +10,7 @@ def export_all():
     try:
         abs_pptx = os.path.abspath("心房搜查令_最终现场放映版.pptx")
         pres = ppt_app.Presentations.Open(abs_pptx, WithWindow=False)
-        out_dir = os.path.abspath("preview_slides")
+        out_dir = os.path.abspath("预览图")
         os.makedirs(out_dir, exist_ok=True)
         count = pres.Slides.Count
         print(f"Total slides to export: {count}")
