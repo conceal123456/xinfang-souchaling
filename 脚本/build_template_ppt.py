@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-生成放映用的 PPT 模板（11 页）。
+生成《心房搜查令》最新现场放映版 PPT (11 页)。
 
-第 1 页封面，第 2-9 页是八幕分镜（每页留一个 16:9 的槽位，
-图由 run_agent_pipeline.py 填），第 10 页致谢，第 11 页场控表。
-画幅统一 13.333 x 7.5 英寸。
+规范与要求：
+1. 第 1 页封面：使用生图模型生成的 16:9 电影级海报图 cover.jpg，叠加微光质感标题卡片；
+2. 第 2-9 页八大分镜：纯场景大图模式，去掉所有顶部和底部文字，画面铺满 16:9 (13.333" x 7.5")，沉浸式放映；
+3. 第 10 页致谢页：使用生图模型生成的 16:9 剧院谢幕美图 ending.jpg，左右翼对称演职人员与鸣谢卡片，中心留白呈现舞台紫竹笛与清茶；
+4. 第 11 页后台场控表：保留完整的 9 行 6 列后台视听与道具调度执行表。
 """
 
 import os
@@ -12,314 +14,139 @@ import sys
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
-def build_template():
+def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx", template_pptx="心房搜查令_电影分镜剧照与台词字幕放映PPT.pptx"):
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    # 配色：黑金
+    # 标准配色
     COLOR_BG = RGBColor(11, 14, 20)          # 极黑深蓝背景底色
-    COLOR_FRAME = RGBColor(22, 28, 40)       # 预留槽位深灰底色
-    COLOR_GOLD = RGBColor(230, 180, 70)      # 琥珀金标
+    COLOR_GOLD = RGBColor(230, 180, 70)      # 琥珀金
     COLOR_WHITE = RGBColor(255, 255, 255)    # 纯白
     COLOR_SUBTITLE = RGBColor(220, 225, 235) # 字幕白
     COLOR_DIM = RGBColor(140, 148, 165)      # 辅文字灰
-    COLOR_BAR_BG = RGBColor(14, 18, 26)      # 悬浮条背景深色
-    COLOR_BAR_BORDER = RGBColor(50, 65, 90)  # 悬浮条微光边框
-    COLOR_CARD_BG = RGBColor(16, 22, 32)     # 信息卡片背景色
+    COLOR_CARD_BG = RGBColor(12, 16, 24)     # 半透明质感深色底板
+    COLOR_BORDER = RGBColor(50, 65, 90)      # 微光边缘色
+    COLOR_GOLD_BORDER = RGBColor(180, 140, 50)# 金色边框
 
-    scenes_data = [
-        {
-            "id": 1,
-            "badge": "第 01 幕 · 宿舍暗潮",
-            "title": "深夜孤光下的寡淡清汤面",
-            "speaker": "【赵学衡】",
-            "dialogue": "“古人讲淡泊明志，咱们学医的人，肠胃清爽了，脑子才转得快。我这一天三顿白面条，舒坦！”",
-            "stage_cue": "[舞台提示：深夜清冷台灯孤光，大蒜就面维持极简伪装，手捧《中药学》念念有词，内心暗潮汹涌]"
-        },
-        {
-            "id": 2,
-            "badge": "第 02 幕 · 门口对峙",
-            "title": "走廊白光倾泻与手持公文夹的心理搜查官",
-            "speaker": "【郝朋】",
-            "dialogue": "“赵学衡，我们今晚过来，是接到全寝室的联合反映，带着心房搜查的紧急任务来的。”",
-            "stage_cue": "[舞台提示：房门骤启，走廊森白强光斜切入室，公文夹在手目光如炬，赵学衡筷子僵在半空惊骇回眸]"
-        },
-        {
-            "id": 3,
-            "badge": "第 03 幕 · 宿舍交锋",
-            "title": "100%打卡神话与医务室频开助眠药的矛盾特写",
-            "speaker": "【程澄 & 郝朋】",
-            "dialogue": "程澄：“桌面打卡执行率100%。” ｜ 郝朋：“那为什么医务室的登记本上，频繁出现你开助眠药的记录？”",
-            "stage_cue": "[舞台提示：全红钩日程手账与安神助眠胶囊处方并列，双手剧烈颤抖，背景幽红心律失常折线隐现]"
-        },
-        {
-            "id": 4,
-            "badge": "第 04 幕 · 暗室铁柜",
-            "title": "三把黄铜大锁与身体死守柜门的赵学衡",
-            "speaker": "【赵学衡 & 郝朋】",
-            "dialogue": "郝朋：“心理辅导老师签发《心房关怀通行证》。” ｜ 赵学衡：“别动！这柜子不是我的！……里面什么都没有！”",
-            "stage_cue": "[舞台提示：冰蓝追光笼罩三道重锁铁柜，封条严密，赵学衡恐慌扑身死守，内心防御堡垒濒临解体]"
-        },
-        {
-            "id": 5,
-            "badge": "第 05 幕 · 书籍雪崩（高潮）",
-            "title": "书籍倾覆与赵学衡跪地抱头痛哭",
-            "speaker": "【赵学衡】",
-            "dialogue": "“郝朋……我一页都没看完……全在这儿！我怕啊！我穷怕了，也落后怕了！我快被这些纸压死了！！”",
-            "stage_cue": "[舞台提示：高潮溃堤！柜门洞开成千上万试卷书籍如雪崩倾覆，单束苍白顶光下跪地抱头号啕，心魔终决堤]"
-        },
-        {
-            "id": 6,
-            "badge": "第 06 幕 · 破防与接纳",
-            "title": "抗拒安慰的应激防御与平视递上的搪瓷温茶",
-            "speaker": "【赵学衡 & 林凡 & 郝朋】",
-            "dialogue": "赵学衡：“别碰我！” ｜ 林凡：“我不懂，你教教我……先喝口热茶。” ｜ 郝朋：“你不是贪婪，你只是太想赢。”",
-            "stage_cue": "[舞台提示：暖琥珀色柔光切入，甩开安慰的刺猬应激与平视递上的温热药茶，直面脆弱，破防走向真实接纳]"
-        },
-        {
-            "id": 7,
-            "badge": "第 07 幕 · 笛声晨光",
-            "title": "横吹紫竹笛（徵音清心·角音疏肝）与撕碎苛刻清单",
-            "speaker": "【郝朋 & 赵学衡】",
-            "dialogue": "郝朋：“接纳自己的不完美，允许自己今天只是一棵刚刚破土的幼苗。” ｜ 赵学衡：“好！去草药园！”",
-            "stage_cue": "[舞台提示：晨光穿窗洒入，紫竹笛悠扬吹奏《清心引》，苛刻作息纸条被狠狠撕碎扬向晨曦，如释重负]"
-        },
-        {
-            "id": 8,
-            "badge": "第 08 幕 · 尾声谢幕",
-            "title": "四人携手鞠躬致谢与《黄帝内经》经典金句大屏",
-            "speaker": "【郝朋（领衔总结）】",
-            "dialogue": "“大梦初醒，心门始开。正如《黄帝内经》所言——‘恬淡虚无，真气从之；精神内守，病安从来！’”",
-            "stage_cue": "[舞台提示：全场金碧辉煌漫射光，四位青年演员并肩牵手优雅鞠躬，LED大屏金字璀璨，大幕从容落下]"
-        }
+    def get_img_path(filename):
+        paths_to_check = [
+            filename,
+            os.path.join("剧照", filename),
+            os.path.join(os.path.dirname(__file__), "..", "剧照", filename),
+            os.path.join(os.path.dirname(__file__), filename)
+        ]
+        for p in paths_to_check:
+            if os.path.exists(p):
+                return os.path.abspath(p)
+        return None
+
+    # ==================== 第 1 页：封面 (cover.jpg) ====================
+    slide_cov = prs.slides.add_slide(blank_layout)
+    cover_img = get_img_path("cover.jpg")
+    if cover_img:
+        slide_cov.shapes.add_picture(cover_img, Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
+    else:
+        bg_cov = slide_cov.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
+        bg_cov.fill.solid()
+        bg_cov.fill.fore_color.rgb = COLOR_BG
+
+    # 封面电影级优雅字幕（左右角与底部留白，完全避开海报正中“心房搜查令”金字与人物）
+    tb_cov_top_l = slide_cov.shapes.add_textbox(Inches(0.6), Inches(0.25), Inches(5.0), Inches(0.4))
+    tf_cov_l = tb_cov_top_l.text_frame
+    tf_cov_l.word_wrap = True
+    p_l = tf_cov_l.paragraphs[0]
+    p_l.text = "第十四届校园心理情景剧大赛 · 舞台放映"
+    p_l.font.size = Pt(11.5)
+    p_l.font.color.rgb = COLOR_GOLD
+    p_l.font.bold = True
+    p_l.font.name = "Microsoft YaHei"
+
+    tb_cov_top_r = slide_cov.shapes.add_textbox(Inches(7.733), Inches(0.25), Inches(5.0), Inches(0.4))
+    tf_cov_r = tb_cov_top_r.text_frame
+    tf_cov_r.word_wrap = True
+    p_r = tf_cov_r.paragraphs[0]
+    p_r.text = "2024级数据科学与大数据技术班"
+    p_r.font.size = Pt(11.5)
+    p_r.font.color.rgb = COLOR_SUBTITLE
+    p_r.font.name = "Microsoft YaHei"
+    p_r.alignment = PP_ALIGN.RIGHT
+
+    tb_cov_bot = slide_cov.shapes.add_textbox(Inches(0.8), Inches(7.12), Inches(11.733), Inches(0.35))
+    tf_cov_bot = tb_cov_bot.text_frame
+    tf_cov_bot.word_wrap = True
+    p_bot = tf_cov_bot.paragraphs[0]
+    p_bot.text = "电影分镜剧照与现场放映演示文稿 · 最终放映版  ｜  《心房搜查令》  ｜  16:9 全屏画幅"
+    p_bot.font.size = Pt(9.5)
+    p_bot.font.color.rgb = COLOR_DIM
+    p_bot.font.name = "Microsoft YaHei"
+    p_bot.alignment = PP_ALIGN.CENTER
+
+    # ==================== 第 2 至 9 页：八大分镜纯场景图 ====================
+    scenes = [
+        ("scene_01.jpg", "第01幕·宿舍暗潮"),
+        ("scene_02.jpg", "第02幕·门口对峙"),
+        ("scene_03.jpg", "第03幕·宿舍交锋"),
+        ("scene_04.jpg", "第04幕·暗室铁柜"),
+        ("scene_05.jpg", "第05幕·书籍雪崩"),
+        ("scene_06.jpg", "第06幕·破防与接纳"),
+        ("scene_07.jpg", "第07幕·笛声晨光"),
+        ("scene_08.jpg", "第08幕·尾声谢幕")
     ]
 
-    # ==================== 第 1 页：封面 ====================
-    slide_cov = prs.slides.add_slide(blank_layout)
-    bg_cov = slide_cov.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
-    bg_cov.fill.solid()
-    bg_cov.fill.fore_color.rgb = COLOR_BG
-    bg_cov.line.color.rgb = COLOR_BG
-
-    # 封面微光装饰边框
-    frame_cov = slide_cov.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.8), Inches(11.733), Inches(5.9))
-    frame_cov.fill.solid()
-    frame_cov.fill.fore_color.rgb = RGBColor(14, 18, 26)
-    frame_cov.line.color.rgb = COLOR_BAR_BORDER
-    frame_cov.line.width = Pt(1.5)
-
-    tb_cov = slide_cov.shapes.add_textbox(Inches(1.3), Inches(1.2), Inches(10.733), Inches(5.1))
-    tf_cov = tb_cov.text_frame
-    tf_cov.word_wrap = True
-
-    p0 = tf_cov.paragraphs[0]
-    p0.text = "第十四届校园心理情景剧大赛 · 舞台大屏放映系统"
-    p0.font.size = Pt(14)
-    p0.font.color.rgb = COLOR_GOLD
-    p0.font.bold = True
-    p0.font.name = "Microsoft YaHei"
-    p0.space_after = Pt(20)
-
-    p1 = tf_cov.add_paragraph()
-    p1.text = "心房搜查令"
-    p1.font.size = Pt(56)
-    p1.font.color.rgb = COLOR_WHITE
-    p1.font.bold = True
-    p1.font.name = "Microsoft YaHei"
-    p1.space_after = Pt(14)
-
-    p2 = tf_cov.add_paragraph()
-    p2.text = "电影分镜剧照与台词字幕放映演示文稿 · 现场放映版"
-    p2.font.size = Pt(22)
-    p2.font.color.rgb = COLOR_GOLD
-    p2.font.bold = True
-    p2.font.name = "Microsoft YaHei"
-    p2.space_after = Pt(30)
-
-    p3 = tf_cov.add_paragraph()
-    p3.text = "创作立意：当代大学生学术囤积与冒名顶替困境 ｜ 认知解离断舍离 ｜ 中医五音情志相胜"
-    p3.font.size = Pt(14.5)
-    p3.font.color.rgb = COLOR_SUBTITLE
-    p3.font.name = "Microsoft YaHei"
-    p3.space_after = Pt(14)
-
-    p4 = tf_cov.add_paragraph()
-    p4.text = "演职班级：2024级数据科学与大数据技术班  ｜  画幅规范：16:9 电影级沉浸式全屏画幅"
-    p4.font.size = Pt(13)
-    p4.font.color.rgb = COLOR_DIM
-    p4.font.name = "Microsoft YaHei"
-
-    # ==================== 第 2 至 9 页：8 大分镜放映页 ====================
-    # 每页固定四层：背景底板、剧照槽位、顶部信息栏、底部字幕条。
-    # 槽位只是模板里占位用的，真正注入剧照时会被删掉。
-
-    for sc in scenes_data:
+    for idx, (img_file, sc_title) in enumerate(scenes, start=1):
         slide = prs.slides.add_slide(blank_layout)
+        img_path = get_img_path(img_file)
+        if img_path:
+            slide.shapes.add_picture(img_path, Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
+            print(f"  ✓ 第 {idx + 1:02d} 页：已载入 16:9 纯场景大图 [{img_file}]")
+        else:
+            print(f"  ! 警告：未找到图片 [{img_file}]")
+            bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
+            bg.fill.solid()
+            bg.fill.fore_color.rgb = COLOR_BG
 
-        # Shape 0: 全屏背景底板
-        bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
-        bg.fill.solid()
-        bg.fill.fore_color.rgb = COLOR_BG
-        bg.line.color.rgb = COLOR_BG
-
-        # 剧照槽位：没填图的时候显示占位的样子
-        slot_frame = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
-        slot_frame.fill.solid()
-        slot_frame.fill.fore_color.rgb = COLOR_FRAME
-        slot_frame.line.color.rgb = COLOR_BAR_BORDER
-        slot_frame.line.width = Pt(1.5)
-        slot_tf = slot_frame.text_frame
-        slot_tf.word_wrap = True
-        slot_p = slot_tf.paragraphs[0]
-        slot_p.text = f"[ 16:9 电影级沉浸式分镜剧照预留槽位: scene_{sc['id']:02d}.jpg ]"
-        slot_p.font.size = Pt(16)
-        slot_p.font.color.rgb = COLOR_DIM
-        slot_p.font.name = "Microsoft YaHei"
-        slot_p.alignment = PP_ALIGN.CENTER
-
-        # 顶部信息栏：0.8", 0.25" 起，11.733" x 0.78"
-        top_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.25), Inches(11.733), Inches(0.78))
-        top_bar.fill.solid()
-        top_bar.fill.fore_color.rgb = COLOR_BAR_BG
-        top_bar.line.color.rgb = COLOR_BAR_BORDER
-        top_bar.line.width = Pt(1.2)
-        top_tf = top_bar.text_frame
-        top_tf.word_wrap = True
-        top_tf.margin_left = Inches(0.25)
-        top_tf.margin_top = Inches(0.1)
-
-        top_p = top_tf.paragraphs[0]
-        r_badge = top_p.add_run()
-        r_badge.text = sc['badge']
-        r_badge.font.size = Pt(15)
-        r_badge.font.bold = True
-        r_badge.font.color.rgb = COLOR_GOLD
-        r_badge.font.name = "Microsoft YaHei"
-
-        r_sep = top_p.add_run()
-        r_sep.text = "  ｜  "
-        r_sep.font.size = Pt(15)
-        r_sep.font.color.rgb = COLOR_DIM
-        r_sep.font.name = "Microsoft YaHei"
-
-        r_title = top_p.add_run()
-        r_title.text = sc['title']
-        r_title.font.size = Pt(15)
-        r_title.font.bold = True
-        r_title.font.color.rgb = COLOR_WHITE
-        r_title.font.name = "Microsoft YaHei"
-
-        top_sub = top_tf.add_paragraph()
-        top_sub.text = f"《心房搜查令》电影分镜放映系统  ·  SCENE {sc['id']:02d} / 08"
-        top_sub.font.size = Pt(10.5)
-        top_sub.font.color.rgb = COLOR_GOLD
-        top_sub.font.name = "Microsoft YaHei"
-
-        # 底部字幕条：0.8", 5.42" 起，11.733" x 1.72"
-        sub_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.42), Inches(11.733), Inches(1.72))
-        sub_bar.fill.solid()
-        sub_bar.fill.fore_color.rgb = COLOR_BAR_BG
-        sub_bar.line.color.rgb = COLOR_BAR_BORDER
-        sub_bar.line.width = Pt(1.5)
-
-        sub_tf = sub_bar.text_frame
-        sub_tf.word_wrap = True
-        sub_tf.margin_left = Inches(0.3)
-        sub_tf.margin_top = Inches(0.18)
-        sub_tf.margin_right = Inches(0.3)
-
-        spk_p = sub_tf.paragraphs[0]
-        r_spk = spk_p.add_run()
-        r_spk.text = sc['speaker'] + "  "
-        r_spk.font.size = Pt(14.5)
-        r_spk.font.bold = True
-        r_spk.font.color.rgb = COLOR_GOLD
-        r_spk.font.name = "Microsoft YaHei"
-
-        r_dlg = spk_p.add_run()
-        r_dlg.text = sc['dialogue']
-        r_dlg.font.size = Pt(14.5)
-        r_dlg.font.bold = True
-        r_dlg.font.color.rgb = COLOR_WHITE
-        r_dlg.font.name = "Microsoft YaHei"
-        spk_p.space_after = Pt(6)
-
-        cue_p = sub_tf.add_paragraph()
-        cue_p.text = sc['stage_cue']
-        cue_p.font.size = Pt(11.5)
-        cue_p.font.color.rgb = COLOR_GOLD
-        cue_p.font.name = "Microsoft YaHei"
-
-    # ==================== 第 10 页：片尾“谢谢大家”致谢幻灯片 ====================
+    # ==================== 第 10 页：片尾致谢页 (ending.jpg) ====================
     slide_thx = prs.slides.add_slide(blank_layout)
-    bg_thx = slide_thx.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
-    bg_thx.fill.solid()
-    bg_thx.fill.fore_color.rgb = COLOR_BG
-    bg_thx.line.color.rgb = COLOR_BG
+    ending_img = get_img_path("ending.jpg")
+    if ending_img:
+        slide_thx.shapes.add_picture(ending_img, Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
+    else:
+        bg_thx = slide_thx.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
+        bg_thx.fill.solid()
+        bg_thx.fill.fore_color.rgb = COLOR_BG
 
-    # 顶部致谢大标题区域
-    tb_thx_title = slide_thx.shapes.add_textbox(Inches(0.8), Inches(0.45), Inches(11.733), Inches(1.8))
-    tf_thx_t = tb_thx_title.text_frame
-    tf_thx_t.word_wrap = True
-
-    pthx0 = tf_thx_t.paragraphs[0]
-    pthx0.text = "《心房搜查令》 · 全剧终"
-    pthx0.font.size = Pt(16)
-    pthx0.font.bold = True
-    pthx0.font.color.rgb = COLOR_GOLD
-    pthx0.font.name = "Microsoft YaHei"
-    pthx0.alignment = PP_ALIGN.CENTER
-    pthx0.space_after = Pt(6)
-
-    pthx1 = tf_thx_t.add_paragraph()
-    pthx1.text = "谢 谢 大 家"
-    pthx1.font.size = Pt(50)
-    pthx1.font.bold = True
-    pthx1.font.color.rgb = COLOR_WHITE
-    pthx1.font.name = "Microsoft YaHei"
-    pthx1.alignment = PP_ALIGN.CENTER
-
-    # 中部金句框
-    quote_bar = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(2.35), Inches(10.333), Inches(0.8))
-    quote_bar.fill.solid()
-    quote_bar.fill.fore_color.rgb = RGBColor(18, 24, 34)
-    quote_bar.line.color.rgb = COLOR_GOLD
-    quote_bar.line.width = Pt(1.2)
+    # 顶部金句横幅（居中悬浮于顶光之上，庄严宁静）
+    quote_bar = slide_thx.shapes.add_textbox(Inches(1.5), Inches(0.2), Inches(10.333), Inches(0.5))
     qtf = quote_bar.text_frame
     qtf.word_wrap = True
     qp = qtf.paragraphs[0]
     qp.text = "“恬淡虚无，真气从之；精神内守，病安从来！”  ——《黄帝内经·素问》"
-    qp.font.size = Pt(15)
+    qp.font.size = Pt(13.5)
     qp.font.bold = True
     qp.font.color.rgb = COLOR_GOLD
     qp.font.name = "Microsoft YaHei"
     qp.alignment = PP_ALIGN.CENTER
 
-    # 下方左右两大信息卡片
-    # 左卡片：演职人员表
-    card_left = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.2), Inches(3.35), Inches(5.25), Inches(3.35))
-    card_left.fill.solid()
-    card_left.fill.fore_color.rgb = COLOR_CARD_BG
-    card_left.line.color.rgb = COLOR_BAR_BORDER
-    card_left.line.width = Pt(1.2)
+    # 左翼：演职人员表（置于左侧红丝绒暗影区域，纯透明悬浮排版）
+    card_left = slide_thx.shapes.add_textbox(Inches(0.6), Inches(1.75), Inches(4.3), Inches(4.8))
     cl_tf = card_left.text_frame
     cl_tf.word_wrap = True
-    cl_tf.margin_left = Inches(0.35)
-    cl_tf.margin_right = Inches(0.35)
-    cl_tf.margin_top = Inches(0.25)
+    cl_tf.margin_left = Inches(0.1)
+    cl_tf.margin_right = Inches(0.1)
+    cl_tf.margin_top = Inches(0.1)
 
     cl_p0 = cl_tf.paragraphs[0]
     cl_p0.text = "【 演职人员表 · CAST & CREW 】"
-    cl_p0.font.size = Pt(14)
+    cl_p0.font.size = Pt(13)
     cl_p0.font.bold = True
     cl_p0.font.color.rgb = COLOR_GOLD
     cl_p0.font.name = "Microsoft YaHei"
-    cl_p0.space_after = Pt(12)
+    cl_p0.space_after = Pt(10)
 
     cast_items = [
         ("编剧 / 导演", "2024级数据科学与大数据技术班 创编组"),
@@ -332,55 +159,51 @@ def build_template():
         p_c = cl_tf.add_paragraph()
         r1 = p_c.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(11.5)
+        r1.font.size = Pt(10.5)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_c.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(11)
+        r2.font.size = Pt(10)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
         p_c.space_after = Pt(6)
 
-    # 右卡片：特别鸣谢与致谢寄语
-    card_right = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.88), Inches(3.35), Inches(5.25), Inches(3.35))
-    card_right.fill.solid()
-    card_right.fill.fore_color.rgb = COLOR_CARD_BG
-    card_right.line.color.rgb = COLOR_BAR_BORDER
-    card_right.line.width = Pt(1.2)
+    # 右翼：特别鸣谢与致谢寄语（置于右侧红丝绒暗影区域，纯透明悬浮排版）
+    card_right = slide_thx.shapes.add_textbox(Inches(8.433), Inches(1.75), Inches(4.3), Inches(4.8))
     cr_tf = card_right.text_frame
     cr_tf.word_wrap = True
-    cr_tf.margin_left = Inches(0.35)
-    cr_tf.margin_right = Inches(0.35)
-    cr_tf.margin_top = Inches(0.25)
+    cr_tf.margin_left = Inches(0.1)
+    cr_tf.margin_right = Inches(0.1)
+    cr_tf.margin_top = Inches(0.1)
 
     cr_p0 = cr_tf.paragraphs[0]
     cr_p0.text = "【 特别鸣谢 · SPECIAL THANKS 】"
-    cr_p0.font.size = Pt(14)
+    cr_p0.font.size = Pt(13)
     cr_p0.font.bold = True
     cr_p0.font.color.rgb = COLOR_GOLD
     cr_p0.font.name = "Microsoft YaHei"
-    cr_p0.space_after = Pt(12)
+    cr_p0.space_after = Pt(10)
 
     thanks_items = [
         ("指导单位", "校学生工作部（处） / 心理健康教育与咨询中心"),
         ("学术支持", "传统中医药五音疗疾与情志相胜指导组"),
         ("剧组班级", "2024级数据科学与大数据技术班 全体同学"),
         ("技术呈现", "16:9 沉浸式电影分镜视听放映系统"),
-        ("致谢寄语", "诚挚感谢各位评委老师、现场观众的悉心指导与陪伴！")
+        ("致谢寄语", "《心房搜查令》全剧终 · 谢谢大家！诚挚感谢悉心陪伴！")
     ]
     for role, desc in thanks_items:
         p_t = cr_tf.add_paragraph()
         r1 = p_t.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(11.5)
+        r1.font.size = Pt(10.5)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_t.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(11)
+        r2.font.size = Pt(10)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
         p_t.space_after = Pt(6)
@@ -469,12 +292,16 @@ def build_template():
             else:
                 p.font.color.rgb = COLOR_SUBTITLE
 
-    template_filename = "心房搜查令_电影分镜剧照与台词字幕放映PPT.pptx"
-    prs.save(template_filename)
-    print(f"模板好了：{template_filename}")
-    print(f"一共 {len(prs.slides)} 页")
-    return template_filename
+    prs.save(output_pptx)
+    print(f"\n生成成功！放映文件已保存至: {output_pptx}")
+    print(f"总计 {len(prs.slides)} 页，母版比例 16:9。")
+
+    if template_pptx:
+        prs.save(template_pptx)
+        print(f"同步更新模板文件: {template_pptx}")
+
+    return output_pptx
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
-    build_template()
+    build_presentation()

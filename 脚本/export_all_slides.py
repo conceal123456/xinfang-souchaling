@@ -23,7 +23,11 @@ def export_all():
     except Exception as e:
         print("Export error:", e)
     finally:
-        os._exit(0)
+        try:
+            ppt_app.Quit()
+        except Exception:
+            pass
+        pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     export_all()
