@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-生成《心房搜查令》电影分镜剧照与台词字幕放映PPT模板
-规格：
-- 16:9 电影级宽屏（13.333 x 7.5 英寸 / 1920x1080 等比画幅）
-- 11 页完整放映与舞台场控结构：
-  1. 封面（片头大屏放映版）
-  2-9. 8 大分镜放映页（16:9 电影画幅预留槽位、顶部悬浮信息栏、底部下沉式字幕条）
-  10. 片尾致谢页（“谢谢大家” · 演职人员表 · 特别鸣谢 · 黄帝内经金句）
-  11. 后台全流程场控与视听调度表（9行6列精细化表格）
+生成放映用的 PPT 模板（11 页）。
+
+第 1 页封面，第 2-9 页是八幕分镜（每页留一个 16:9 的槽位，
+图由 run_agent_pipeline.py 填），第 10 页致谢，第 11 页场控表。
+画幅统一 13.333 x 7.5 英寸。
 """
 
 import os
@@ -24,7 +21,7 @@ def build_template():
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    # 配色方案（黑金电影级色调）
+    # 配色：黑金
     COLOR_BG = RGBColor(11, 14, 20)          # 极黑深蓝背景底色
     COLOR_FRAME = RGBColor(22, 28, 40)       # 预留槽位深灰底色
     COLOR_GOLD = RGBColor(230, 180, 70)      # 琥珀金标
@@ -158,11 +155,8 @@ def build_template():
     p4.font.name = "Microsoft YaHei"
 
     # ==================== 第 2 至 9 页：8 大分镜放映页 ====================
-    # 采用标准 16:9 电影级大屏设计（13.333 x 7.5 英寸）：
-    # Shape 0: 全屏背景底板
-    # Shape 1: 16:9 剧照占位框（注：流水线注入剧照时将直接移除此占位框，杜绝任何遮挡！）
-    # Shape 2: 顶部悬浮信息栏（Badge + 幕次 + 标题 + Scene序号）
-    # Shape 3: 底部下沉悬浮字幕条（角色 + 经典台词 + 舞台调度提示）
+    # 每页固定四层：背景底板、剧照槽位、顶部信息栏、底部字幕条。
+    # 槽位只是模板里占位用的，真正注入剧照时会被删掉。
 
     for sc in scenes_data:
         slide = prs.slides.add_slide(blank_layout)
@@ -173,7 +167,7 @@ def build_template():
         bg.fill.fore_color.rgb = COLOR_BG
         bg.line.color.rgb = COLOR_BG
 
-        # Shape 1: 16:9 全屏电影级分镜剧照预留槽位（仅在模板未注入图片时展示占位视觉）
+        # 剧照槽位：没填图的时候显示占位的样子
         slot_frame = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
         slot_frame.fill.solid()
         slot_frame.fill.fore_color.rgb = COLOR_FRAME
@@ -188,7 +182,7 @@ def build_template():
         slot_p.font.name = "Microsoft YaHei"
         slot_p.alignment = PP_ALIGN.CENTER
 
-        # Shape 2: 顶部悬浮信息栏 (Left: 0.8", Top: 0.25", Width: 11.733", Height: 0.78")
+        # 顶部信息栏：0.8", 0.25" 起，11.733" x 0.78"
         top_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.25), Inches(11.733), Inches(0.78))
         top_bar.fill.solid()
         top_bar.fill.fore_color.rgb = COLOR_BAR_BG
@@ -226,7 +220,7 @@ def build_template():
         top_sub.font.color.rgb = COLOR_GOLD
         top_sub.font.name = "Microsoft YaHei"
 
-        # Shape 3: 底部下沉悬浮台词字幕条 (Left: 0.8", Top: 5.42", Width: 11.733", Height: 1.72")
+        # 底部字幕条：0.8", 5.42" 起，11.733" x 1.72"
         sub_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.42), Inches(11.733), Inches(1.72))
         sub_bar.fill.solid()
         sub_bar.fill.fore_color.rgb = COLOR_BAR_BG
@@ -477,8 +471,8 @@ def build_template():
 
     template_filename = "心房搜查令_电影分镜剧照与台词字幕放映PPT.pptx"
     prs.save(template_filename)
-    print(f"模板生成成功: {template_filename}")
-    print(f"总页数: {len(prs.slides)} 页")
+    print(f"模板好了：{template_filename}")
+    print(f"一共 {len(prs.slides)} 页")
     return template_filename
 
 if __name__ == "__main__":

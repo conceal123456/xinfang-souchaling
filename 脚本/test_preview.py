@@ -14,10 +14,10 @@ def test_preview():
     blank_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank_layout)
 
-    # 1. 插入全屏 16:9 剧照
+    # 铺满整页的剧照
     pic = slide.shapes.add_picture('剧照/scene_02.jpg', Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
 
-    # 2. 顶部悬浮信息条 (半透明深色玻璃质感)
+    # 顶部信息栏
     top_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.25), Inches(11.733), Inches(0.78))
     top_bar.fill.solid()
     top_bar.fill.fore_color.rgb = RGBColor(12, 16, 24)
@@ -40,7 +40,7 @@ def test_preview():
     p1.font.color.rgb = RGBColor(230, 180, 70)
     p1.font.name = "Microsoft YaHei"
 
-    # 3. 底部下沉悬浮字幕条
+    # 底部字幕条
     sub_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(5.42), Inches(11.733), Inches(1.72))
     sub_bar.fill.solid()
     sub_bar.fill.fore_color.rgb = RGBColor(12, 16, 24)
@@ -68,7 +68,7 @@ def test_preview():
 
     test_file = "test_fullbleed.pptx"
     prs.save(test_file)
-    print("Saved test_fullbleed.pptx")
+    print("存成 test_fullbleed.pptx")
 
 if __name__ == "__main__":
     test_preview()

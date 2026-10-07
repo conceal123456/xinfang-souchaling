@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-《心房搜查令》电影分镜 PPT 全自动生成与图层嵌入工作流
-特性：
-1. 锁定中国青年大学生五官特征与服饰 DNA；
-2. 完美嵌入 16:9 全屏电影级分镜剧照；
-3. 彻底清除模板占位框（slot_frame），解决图片被占位框遮挡问题；
-4. 精准控制图层 Z-order 顺序，使顶层标题栏与底层台词字幕条无遮挡悬浮于剧照之上；
-5. 完整输出包含封面、8大分镜放映页、片尾“谢谢大家”致谢页及后台全流程场控表的现场放映版 PPT。
+把剧照和台词拼成现场放映用的 PPT。
+
+模板先用 build_template_ppt.py 生成。这里做的是：把每页的占位框删掉，
+把对应剧照铺满整页，再把它压到背景之上、标题栏和字幕条之下。
+跑完输出 心房搜查令_最终现场放映版.pptx。
 """
 
 import os
@@ -14,7 +12,7 @@ import sys
 from pptx import Presentation
 from pptx.util import Inches
 
-# 8 大分镜元数据清单
+# 八幕的图片和文案对应关系
 SCENES_CONFIG = [
     {
         "id": 1,
@@ -67,7 +65,7 @@ SCENES_CONFIG = [
 ]
 
 def find_image_file(filename):
-    """优先在当前目录查找，若无则在 剧照 目录查找"""
+    """先在当前目录找，找不到就去 剧照/ 里找"""
     if os.path.exists(filename):
         return filename
     sub_path = os.path.join("剧照", filename)
@@ -77,12 +75,12 @@ def find_image_file(filename):
 
 def inject_images_to_ppt(template_pptx, output_pptx):
     if not os.path.exists(template_pptx):
-        print(f"[错误] 未找到模板文件: {template_pptx}")
+        print(f"找不到模板：{template_pptx}")
         return False
 
     prs = Presentation(template_pptx)
     
-    # 标准 16:9 电影全屏画幅（13.333 x 7.5 英寸）
+    # 铺满整页：13.333 x 7.5 英寸，也就是 16:9
     IMG_LEFT = Inches(0)
     IMG_TOP = Inches(0)
     IMG_WIDTH = Inches(13.333)
@@ -95,13 +93,13 @@ def inject_images_to_ppt(template_pptx, output_pptx):
         
         img_path = find_image_file(img_name)
         if not img_path:
-            print(f"[警告] 缺少分镜图 {img_name}，第 {slide_idx+1} 页保持模板槽位")
+            print(f"缺 {img_name}，第 {slide_idx+1} 页先空着")
             continue
 
         slide = prs.slides[slide_idx]
         spTree = slide.shapes._spTree
 
-        # 1. 查找并移除模板中的占位框（彻底杜绝占位框遮挡剧照问题）
+        # 占位框要先删掉，不然它会盖在剧照上
         slots_to_remove = []
         for shape in slide.shapes:
             if shape.has_text_frame:
@@ -111,31 +109,23 @@ def inject_images_to_ppt(template_pptx, output_pptx):
         
         for slot in slots_to_remove:
             spTree.remove(slot._element)
-            print(f"  [清除占位框] 第 {slide_idx+1} 页成功移除模板预留框")
+            print(f"  第 {slide_idx+1} 页：占位框删掉了")
 
-        # 2. 插入高清 16:9 全屏分镜剧照
+        # 剧照铺满整页
         pic = slide.shapes.add_picture(img_path, IMG_LEFT, IMG_TOP, width=IMG_WIDTH, height=IMG_HEIGHT)
 
-        # 3. 严格设置 Z-order 渲染层级：
-        # spTree 元素顺序：
-        # index 0: nvGrpSpPr
-        # index 1: grpSpPr
-        # index 2: bg (全屏深色底板)
-        # index 3: pic (剧照位于第 3 位，在底板之上、标题栏与字幕条之下)
-        # index 4: top_bar (悬浮顶部标题栏)
-        # index 5: sub_bar (悬浮底部字幕条)
+        # 剧照要压到第 3 层。PPT 的层级就是 XML 节点的先后顺序：
+        # 0/1 是分组属性，2 是背景底板，4/5 是标题栏和字幕条，
+        # 所以把剧照挪到 index 3，正好夹在背景和悬浮条中间。
         spTree.remove(pic._element)
         spTree.insert(3, pic._element)
 
-        print(f"[成功注入] {img_name} -> 第 {slide_idx+1} 页 (16:9 全屏画幅，图层置于背景之上、字幕之下)")
+        print(f"  第 {slide_idx+1} 页 <- {img_name}")
         injected_count += 1
 
     prs.save(output_pptx)
-    print("\n==========================================")
-    print(f"交付成功！共注入 {injected_count}/8 张分镜剧照")
-    print(f"总页数: {len(prs.slides)} 页")
-    print(f"最终放映版文件: {output_pptx}")
-    print("==========================================")
+    print(f"\n搞定，{injected_count}/8 张剧照填进去了")
+    print(f"输出 {output_pptx}，一共 {len(prs.slides)} 页")
     return True
 
 if __name__ == "__main__":

@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-深入全面校验《心房搜查令_最终现场放映版.pptx》的所有标准：
-1. 检查最终放映版 PPT 文件存在、大小及幻灯片总页数（严格 11 页）；
-2. 深度校验幻灯片第 2 至第 9 页（8 幕分镜放映页）：
-   - 占位框彻底清除：绝无任何 slot_frame 占位框残留；
-   - 剧照无遮挡沉底嵌入：剧照精确处于底层（背景之上，标题与字幕条之下）；
-   - 画幅规范：严格为 16:9 全屏电影级画幅（13.333 x 7.5 英寸）；
-   - 悬浮元素完整：顶部信息栏与底部下沉台词字幕条悬浮清晰、文字完整；
-3. 校验第 10 页片尾“谢谢大家”致谢幻灯片：
-   - 包含“谢谢大家”大标题与“全剧终”标识；
-   - 包含《黄帝内经》经典金句；
-   - 包含四位演职人员角色阵容、创编班级与特别鸣谢；
-4. 校验第 11 页后台全流程场控与视听调度表：
-   - 9 行 6 列完整表格，表头字段与 8 幕舞台执行细则全部到位。
+检查最终放映版 PPT 做得对不对。
+
+看这四样：
+1. 文件在不在、多大、总共几页；
+2. 第 2-9 页八幕：占位框清没清、剧照有没有铺满整页、
+   层级对不对（背景 -> 剧照 -> 标题 -> 字幕）、文字有没有丢；
+3. 第 10 页致谢页的标题、金句、演职人员表、鸣谢；
+4. 第 11 页场控表，9 行 6 列，字段齐不齐。
+
+对不上的地方会直接 assert 报错。
 """
 
 import os
@@ -25,19 +22,19 @@ def run_verification():
     output_file = '心房搜查令_最终现场放映版.pptx'
     
     print("==================================================")
-    print("【校验标准 1】检查最终现场放映版 PPT 文件基础规范")
+    print("1. 文件和基本参数")
     print("==================================================")
     if not os.path.exists(output_file):
         raise FileNotFoundError(f"未找到目标放映文件: {output_file}")
     
     size_bytes = os.path.getsize(output_file)
-    print(f"✓ 成功找到文件: {output_file}")
+    print(f"找到文件：{output_file}")
     print(f"✓ 文件大小: {size_bytes:,} 字节 ({size_bytes / (1024 * 1024):.2f} MB)")
     assert size_bytes > 1024 * 1024, f"文件过小 ({size_bytes} 字节)，剧照可能未成功嵌入"
     
     prs = Presentation(output_file)
     slide_count = len(prs.slides)
-    print(f"✓ 幻灯片总页数: {slide_count} 页 (标准要求为 11 页)")
+    print(f"页数：{slide_count}（要求 11 页）")
     assert slide_count == 11, f"页面总数错误，预期 11 页，实际 {slide_count} 页"
 
     # 校验幻灯片母版尺寸（16:9 宽屏）
@@ -48,7 +45,7 @@ def run_verification():
     assert abs(aspect_ratio - (16.0 / 9.0)) < 0.01, f"画幅比例非 16:9: {aspect_ratio}"
 
     print("\n==================================================")
-    print("【校验标准 2】校验第 2 至第 9 页（8 幕分镜 16:9 剧照无遮挡与字幕悬浮）")
+    print("2. 八幕剧照页")
     print("==================================================")
     for idx in range(1, 9):
         slide = prs.slides[idx]
@@ -65,7 +62,7 @@ def run_verification():
                 txt = shape.text_frame.text
                 assert "预留槽位" not in txt, f"第 {idx + 1} 页检测到残留占位框文本: {txt}"
                 assert "scene_" not in txt or "SCENE" in txt, f"第 {idx + 1} 页检测到残留占位框文件名: {txt}"
-        print("  ✓ 占位框遮挡检测: 通过！无任何 slot_frame 占位框残留！")
+        print("  ✓ 占位框：没有残留")
 
         # 2. 检查图片存在与尺寸比例
         pic_shape = None
@@ -83,7 +80,7 @@ def run_verification():
         assert tags[2] == 'sp', f"第 {idx + 1} 页底层必须为全屏背景底板 (当前为 {tags[2]})"
         assert tags[3] == 'pic', f"第 {idx + 1} 页图片必须置于索引 3 (在背景之上、悬浮层之下，当前为 {tags[3]})"
         assert len(tags) >= 6, f"第 {idx + 1} 页缺少顶部或底部悬浮条"
-        print("  ✓ 图层 Z-order 校验: 通过！背景底板(index 2) -> 剧照(index 3) -> 悬浮标题(index 4) -> 悬浮字幕(index 5)！")
+        print("  ✓ 层级：背景 -> 剧照 -> 标题栏 -> 字幕条")
 
         # 4. 提取标题与对白验证（按几何坐标精准提取顶部条与底部字幕条）
         title_txt = ""
@@ -113,7 +110,7 @@ def run_verification():
         print(f"  ✓ 舞台调度提示: {stage_cue_txt[:40]}...")
 
     print("\n==================================================")
-    print("【校验标准 3】校验第 10 页片尾“谢谢大家”致谢幻灯片")
+    print("3. 第 10 页致谢页")
     print("==================================================")
     slide_10 = prs.slides[9]
     all_texts_10 = []
@@ -133,10 +130,10 @@ def run_verification():
     assert "2024级数据科学与大数据技术班" in compact_10, "第 10 页缺少演职班级"
     for actor in ["赵学衡", "郝朋", "程澄", "林凡"]:
         assert actor in compact_10, f"第 10 页演职人员表缺少角色: {actor}"
-    print("✓ 第 10 页片尾致谢页所有要素（标题、金句、演员表、班级、鸣谢）全部校验通过！")
+    print("✓ 致谢页要素齐全")
 
     print("\n==================================================")
-    print("【校验标准 4】校验第 11 页后台全流程场控与视听调度表")
+    print("4. 第 11 页场控表")
     print("==================================================")
     slide_11 = prs.slides[10]
     table_shape = None
@@ -168,10 +165,10 @@ def run_verification():
         ops = table.cell(r_i, 5).text.strip()
         print(f"  ✓ [行 {r_i}] {sc_name} | 角色:{chars} | 道具:{props[:10]}... | 灯光:{lights[:10]}... | 音效:{music[:10]}...")
         assert len(props) > 0 and len(lights) > 0 and len(music) > 0 and len(ops) > 0
-    print("✓ 第 11 页后台场控表 9 行 6 列全部字段与 8 幕细则完整校验通过！")
+    print("✓ 场控表字段齐全")
 
     print("\n==================================================")
-    print("【校验结论】全部 4 大项自动化深度校验标准 100% 顺利通过！")
+    print("四项都过了，没发现问题。")
     print("==================================================")
 
 if __name__ == "__main__":
