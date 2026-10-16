@@ -68,6 +68,16 @@ def fill_form():
         for cell in table.rows[ri].cells:
             cell.text = ""
 
+    # 清除历史运行中已追加的附加表格与附录段落（确保脚本反复运行绝对幂等）
+    while len(doc.tables) > 1:
+        extra_tbl = doc.tables[1]._element
+        extra_tbl.getparent().remove(extra_tbl)
+    
+    for p in list(doc.paragraphs):
+        if any(kw in p.text for kw in ["演职人员角色与分工对应表", "剧目亮点与舞台呈现说明", "知识囤积障碍", "五音疗疾"]):
+            p_elem = p._element
+            p_elem.getparent().remove(p_elem)
+
     # 2. 在表格下方添加演职人员角色对应表与参赛详情
     p_sep = doc.add_paragraph()
     p_sep.paragraph_format.space_before = Pt(12)

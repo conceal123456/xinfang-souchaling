@@ -220,8 +220,8 @@ def build_base_slides(prs):
     qp.font.name = "Microsoft YaHei"
     qp.alignment = PP_ALIGN.CENTER
 
-    # 2. 左翼卡片：演职人员表（高质感深色底衬面板，抵御舞台光晕干扰）
-    card_l_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.55), Inches(1.5), Inches(4.55), Inches(5.2))
+    # 2. 左翼卡片：演职人员表（高质感深色底衬面板，完美避开正中“心房搜查令”大字）
+    card_l_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.55), Inches(1.4), Inches(4.0), Inches(5.3))
     card_l_bg.fill.solid()
     card_l_bg.fill.fore_color.rgb = COLOR_CARD_BG
     card_l_bg.line.color.rgb = COLOR_BORDER
@@ -229,20 +229,20 @@ def build_base_slides(prs):
     
     cl_tf = card_l_bg.text_frame
     cl_tf.word_wrap = True
-    cl_tf.margin_left = Inches(0.18)
-    cl_tf.margin_right = Inches(0.18)
-    cl_tf.margin_top = Inches(0.18)
+    cl_tf.margin_left = Inches(0.2)
+    cl_tf.margin_right = Inches(0.2)
+    cl_tf.margin_top = Inches(0.2)
 
     cl_p0 = cl_tf.paragraphs[0]
     cl_p0.text = "【 演职人员表 · CAST & CREW 】"
-    cl_p0.font.size = Pt(12.5)
+    cl_p0.font.size = Pt(12)
     cl_p0.font.bold = True
     cl_p0.font.color.rgb = COLOR_GOLD
     cl_p0.font.name = "Microsoft YaHei"
     cl_p0.space_after = Pt(10)
 
     cast_items = [
-        ("编剧 / 导演", "2024级数据科学与大数据技术班 创编组"),
+        ("编剧 / 导演", "2024级数据科学与大数据技术班创编组"),
         ("赵学衡 (饰)", "中医药大三医学生 · 执念释怀与自省"),
         ("郝  朋 (饰)", "班级心理委员 · 心房搜查与温情引航"),
         ("程  澄 (饰)", "室友甲 · 现实客观观察者"),
@@ -252,19 +252,19 @@ def build_base_slides(prs):
         p_c = cl_tf.add_paragraph()
         r1 = p_c.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_c.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9.0)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
         p_c.space_after = Pt(7)
 
-    # 3. 右翼卡片：特别鸣谢与致谢寄语（高质感深色底衬面板）
-    card_r_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.233), Inches(1.5), Inches(4.55), Inches(5.2))
+    # 3. 右翼卡片：特别鸣谢与致谢寄语（高质感深色底衬面板，留足正中聚光灯与大字间距）
+    card_r_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.783), Inches(1.4), Inches(4.0), Inches(5.3))
     card_r_bg.fill.solid()
     card_r_bg.fill.fore_color.rgb = COLOR_CARD_BG
     card_r_bg.line.color.rgb = COLOR_BORDER
@@ -272,36 +272,36 @@ def build_base_slides(prs):
     
     cr_tf = card_r_bg.text_frame
     cr_tf.word_wrap = True
-    cr_tf.margin_left = Inches(0.18)
-    cr_tf.margin_right = Inches(0.18)
-    cr_tf.margin_top = Inches(0.18)
+    cr_tf.margin_left = Inches(0.16)
+    cr_tf.margin_right = Inches(0.16)
+    cr_tf.margin_top = Inches(0.2)
 
     cr_p0 = cr_tf.paragraphs[0]
     cr_p0.text = "【 特别鸣谢 · SPECIAL THANKS 】"
-    cr_p0.font.size = Pt(12.5)
+    cr_p0.font.size = Pt(12)
     cr_p0.font.bold = True
     cr_p0.font.color.rgb = COLOR_GOLD
     cr_p0.font.name = "Microsoft YaHei"
     cr_p0.space_after = Pt(10)
 
     thanks_items = [
-        ("指导单位", "校学生工作部（处） / 心理健康教育与咨询中心"),
+        ("指导单位", "校学生工作部（处）/ 心理健康教育与咨询中心"),
         ("学术支持", "传统中医药五音疗疾与情志相胜指导组"),
-        ("剧组班级", "2024级数据科学与大数据技术班 全体同学"),
+        ("剧组班级", "2024级数据科学与大数据技术班全体同学"),
         ("技术呈现", "16:9 沉浸式电影分镜视听放映系统"),
-        ("致谢寄语", "《心房搜查令》全剧终 · 谢谢大家！诚挚感谢悉心陪伴！")
+        ("致谢寄语", "《心房搜查令》全剧终 · 谢谢大家！诚挚陪伴")
     ]
     for role, desc in thanks_items:
         p_t = cr_tf.add_paragraph()
         r1 = p_t.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.0)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_t.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(8.5)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
         p_t.space_after = Pt(7)

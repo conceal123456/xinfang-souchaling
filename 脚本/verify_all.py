@@ -53,13 +53,28 @@ def verify_all():
         table_shapes = [s for s in slide.shapes if s.has_table]
         assert len(table_shapes) == 0, f"第 {idx+1} 页违规包含表格，存在大屏暴露后台表格风险！"
 
-    # P10 校验
+    # P10 校验（核心关键词 + 无遮挡居中书法几何校验）
     slide_10 = prs_s.slides[9]
     t10_all = "".join([s.text_frame.text for s in slide_10.shapes if s.has_text_frame])
     t10_compact = t10_all.replace(" ", "").replace("　", "")
     for kw in ["恬淡虚无", "黄帝内经", "演职人员表", "特别鸣谢", "全剧终", "谢谢大家", "赵学衡", "郝朋", "程澄", "林凡"]:
         assert kw in t10_compact, f"第 10 页缺少核心要素: {kw}"
-    print("  ✓ 大屏放映版 10 页规范、纯场景图放映、无暴露表格、全注入演讲者备注，通过！")
+        
+    # 几何边界校验：左翼卡片右边缘严禁侵入 x > 4.7 英寸，右翼卡片左边缘严禁早于 x < 8.6 英寸
+    # 彻底杜绝遮挡正中“心房搜查令”（x in [5.01, 8.34]）
+    cards = [s for s in slide_10.shapes if s.shape_type == 1 and s.has_text_frame and "【" in s.text_frame.text]
+    assert len(cards) == 2, f"第 10 页演职与鸣谢卡片数量不符: {len(cards)}"
+    for card in cards:
+        c_left = card.left.inches
+        c_right = card.left.inches + card.width.inches
+        if "演职人员表" in card.text_frame.text:
+            assert c_right <= 4.7, f"左翼演职人员卡片过宽，右边缘 {c_right:.2f} 侵入正中大字空间！"
+        elif "特别鸣谢" in card.text_frame.text:
+            assert c_left >= 8.6, f"右翼鸣谢卡片左边缘 {c_left:.2f} 侵入正中大字空间！"
+            # 校验最后一行无单字孤行
+            assert "陪伴！" not in card.text_frame.text.splitlines()[-1].strip(), "鸣谢卡片末尾存在孤字换行"
+            
+    print("  ✓ 大屏放映版 10 页规范、纯场景图放映、无暴露表格、全注入演讲者备注、P10抗遮挡几何校验通过！")
 
     # ----------------------------------------------------
     # 2. 全流程场控分镜案 PPT 校验 (心房搜查令_全流程场控与分镜案.pptx)
@@ -160,7 +175,37 @@ def verify_all():
     ]
     for kw in required_keywords:
         assert kw in pdf_text_compact, f"PDF 缺少核心规范关键词: {kw}"
-    print(f"  ✓ 提交版 PDF 校验通过（共 {len(reader.pages)} 页，大小 {pdf_size / 1024:.1f} KB，核心术语检索一致）")
+
+    # 深度字体审计：验证真实嵌入的字体是否严格匹配公文规范
+    import fitz
+    doc_fitz = fitz.open(pdf_path)
+    font_char_counts = {}
+    for page in doc_fitz:
+        for block in page.get_text('dict')['blocks']:
+            if 'lines' in block:
+                for line in block['lines']:
+                    for span in line['spans']:
+                        fn = span['font']
+                        font_char_counts[fn] = font_char_counts.get(fn, 0) + len(span['text'])
+    doc_fitz.close()
+    
+    # 断言方正小标宋、黑体、楷体、仿宋真实生效
+    has_fzxbs = any("FZXBS" in f or "XiaobiaoSong" in f or "标宋" in f for f in font_char_counts)
+    has_hei = any("Hei" in f or "黑体" in f for f in font_char_counts)
+    has_kai = any("Kai" in f or "楷体" in f for f in font_char_counts)
+    has_fangsong = any("FangSong" in f or "仿宋" in f for f in font_char_counts)
+    
+    assert has_fzxbs, f"PDF 标题未正确应用方正小标宋字体！已检测字体: {list(font_char_counts.keys())}"
+    assert has_hei, f"PDF 一级标题未正确应用黑体！已检测字体: {list(font_char_counts.keys())}"
+    assert has_kai, f"PDF 二级标题未正确应用楷体！已检测字体: {list(font_char_counts.keys())}"
+    assert has_fangsong, f"PDF 正文未正确应用仿宋字体！已检测字体: {list(font_char_counts.keys())}"
+    
+    fangsong_chars = sum(v for k, v in font_char_counts.items() if "FangSong" in k or "仿宋" in k)
+    simsun_chars = sum(v for k, v in font_char_counts.items() if "SimSun" in k or "宋体" in k)
+    assert fangsong_chars > 4000, f"正文仿宋字符数异常偏少: {fangsong_chars}"
+    assert simsun_chars < 500, f"检测到宋体(SimSun)大规模回退替代异常: {simsun_chars} 字符"
+
+    print(f"  ✓ 提交版 PDF 校验通过（共 {len(reader.pages)} 页，大小 {pdf_size / 1024:.1f} KB，公文字体精准嵌入: 小标宋/黑体/楷体/仿宋均达标）")
 
     # ----------------------------------------------------
     # 5. 纯文本台词校验 (剧本/心房搜查令_台词文本.txt)
@@ -173,7 +218,12 @@ def verify_all():
     assert "心房搜查令（原创）" in txt_content
     assert "PPT 切第" in txt_content
     assert len(txt_content) > 5000
-    print("  ✓ 纯文本台词 TXT 校验通过")
+    
+    # 纯净度审计：台词文本严禁包含行号索引（如 '0: 心房搜查令'）
+    import re
+    index_pollution = [line for line in txt_content.splitlines() if re.match(r"^\d+:\s", line.strip())]
+    assert len(index_pollution) == 0, f"台词文本被索引序号污染: 发现 {len(index_pollution)} 处残留，如 {index_pollution[:3]}"
+    print("  ✓ 纯文本台词 TXT 校验通过（纯净剧本文本，无索引序号污染）")
 
     # ----------------------------------------------------
     # 6. 参赛报名表 DOCX 校验 (参赛材料/附件2：第十四届校园心理剧大赛参赛报名表.docx)
@@ -182,7 +232,7 @@ def verify_all():
     form_path = "参赛材料/附件2：第十四届校园心理剧大赛参赛报名表.docx"
     assert os.path.exists(form_path), f"未找到报名表: {form_path}"
     doc_form = Document(form_path)
-    assert len(doc_form.tables) >= 2, f"报名表需包含主表和演职人员表，实际为 {len(doc_form.tables)} 个表格"
+    assert len(doc_form.tables) == 2, f"报名表必须严格包含主表和演职人员表共 2 个表格（幂等性），实际为 {len(doc_form.tables)} 个表格"
     
     t0 = doc_form.tables[0]
     t0_row1 = [c.text.strip() for c in t0.rows[1].cells]
@@ -195,7 +245,7 @@ def verify_all():
     t1_text = "".join([c.text.strip() for r in t1.rows for c in r.cells])
     for actor in ["赵学衡", "郝朋", "程澄", "林凡"]:
         assert actor in t1_text, f"演职人员表缺少成员: {actor}"
-    print("  ✓ 参赛报名表及演职人员表校验通过")
+    print("  ✓ 参赛报名表及演职人员表校验通过（严格 2 个表格，结构完整幂等）")
 
     # ----------------------------------------------------
     # 7. 预览图集校验 (预览图/slide_01.png ~ slide_10.png)
@@ -211,7 +261,7 @@ def verify_all():
     print("  ✓ 1080P 预览图集校验通过（严格 10 张，无孤立残留图片）")
 
     print("\n" + "=" * 60)
-    print("恭喜！所有 7 项端到端校验 100% 全部通过！各项资产完全符合比赛要求与现场放映规范！")
+    print("恭喜！所有 7 项端到端深度校验 100% 全部通过！各项资产完全符合比赛要求与现场放映规范！")
     print("=" * 60)
 
 if __name__ == "__main__":

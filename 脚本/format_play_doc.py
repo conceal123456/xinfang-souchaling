@@ -222,29 +222,36 @@ def create_script_document():
             set_p_format(p, line_spacing_pt=32, align=WD_ALIGN_PARAGRAPH.JUSTIFY, indent_chars=2)
             
         elif item_type == 'h2':
-            # 二级标题：楷体_GB2312 三号，行距 32 磅，首行缩进 2 字符
-            set_run_font(run, font_ea="楷体_GB2312", size_pt=16, bold=False)
+            # 二级标题：楷体三号，行距 32 磅，首行缩进 2 字符
+            set_run_font(run, font_ea="楷体", size_pt=16, bold=False)
             set_p_format(p, line_spacing_pt=32, align=WD_ALIGN_PARAGRAPH.JUSTIFY, indent_chars=2)
             
         elif item_type == 'h3':
-            # 三级标题：仿宋_GB2312 三号(加粗)，行距 32 磅，首行缩进 2 字符
-            set_run_font(run, font_ea="仿宋_GB2312", size_pt=16, bold=True)
+            # 三级标题：仿宋三号(加粗)，行距 32 磅，首行缩进 2 字符
+            set_run_font(run, font_ea="仿宋", size_pt=16, bold=True)
             set_p_format(p, line_spacing_pt=32, align=WD_ALIGN_PARAGRAPH.JUSTIFY, indent_chars=2)
             
         else: # body
-            # 正文及其他部分：汉字仿宋_GB2312，英文数字 Times New Roman，三号，行距 28 磅，首行缩进 2 字符
-            set_run_font(run, font_ea="仿宋_GB2312", size_pt=16, bold=False)
+            # 正文及其他部分：汉字仿宋，英文数字 Times New Roman，三号，行距 28 磅，首行缩进 2 字符
+            set_run_font(run, font_ea="仿宋", size_pt=16, bold=False)
             set_p_format(p, line_spacing_pt=28, align=WD_ALIGN_PARAGRAPH.JUSTIFY, indent_chars=2)
             
     out_docx = os.path.abspath('剧本/心房搜查令.docx')
     doc.save(out_docx)
     print(f"✓ 规范排版 DOCX 已生成: {out_docx}")
     
-    # 同步输出纯文本台词
+    # 同步输出纯文本台词（剔除行号索引，保持专业干净剧本文本）
     out_txt = os.path.abspath('剧本/心房搜查令_台词文本.txt')
     with open(out_txt, 'w', encoding='utf-8') as f:
-        for idx, (item_type, text) in enumerate(content):
-            f.write(f"{idx}: {text}\n")
+        for item_type, text in content:
+            if item_type in ('title', 'h1'):
+                f.write(f"\n{'='*50}\n{text}\n{'='*50}\n\n")
+            elif item_type == 'h2':
+                f.write(f"\n{text}\n{'-'*35}\n")
+            elif item_type == 'h3':
+                f.write(f"\n{text}\n")
+            else:
+                f.write(f"{text}\n")
     print(f"✓ 同步纯文本台词已更新: {out_txt}")
     
     # 导出为官方提交标准 PDF
@@ -252,13 +259,40 @@ def create_script_document():
     export_to_pdf(out_docx, out_pdf)
     print(f"✓ 官方提交标准 PDF 已导出: {out_pdf}")
 
+def ensure_fonts_registered():
+    """确保方正小标宋等公文字体在当前 Windows 用户环境中动态加载与注册"""
+    import winreg, ctypes
+    font_path = os.path.expanduser('~') + r'\AppData\Local\Microsoft\Windows\Fonts\FZXBSJW.TTF'
+    if os.path.exists(font_path):
+        font_path = os.path.normpath(font_path)
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows NT\CurrentVersion\Fonts', 0, winreg.KEY_SET_VALUE)
+            winreg.SetValueEx(key, '方正小标宋简体 (TrueType)', 0, winreg.REG_SZ, font_path)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+        try:
+            ctypes.windll.gdi32.AddFontResourceW(font_path)
+            ctypes.windll.user32.SendMessageTimeoutW(0xFFFF, 0x001D, 0, 0, 0, 1000, 0)
+        except Exception:
+            pass
+
 def export_to_pdf(docx_path, pdf_path):
+    ensure_fonts_registered()
     pythoncom.CoInitialize()
     word_app = None
     try:
         word_app = win32com.client.DispatchEx("Word.Application")
         word_app.Visible = False
-        doc = word_app.Documents.Open(docx_path, ReadOnly=True)
+        doc = word_app.Documents.Open(docx_path, ReadOnly=False)
+        # 开启字体嵌入与子集内嵌，确保跨机器兼容
+        try:
+            doc.EmbedTrueTypeFonts = True
+            doc.SaveSubsetFonts = True
+            doc.DoNotEmbedSystemFonts = False
+            doc.Save()
+        except Exception as e_embed:
+            print(f"  ! 嵌入字体设置提示: {e_embed}")
         # 17 represents wdFormatPDF
         doc.SaveAs(pdf_path, FileFormat=17)
         doc.Close()
