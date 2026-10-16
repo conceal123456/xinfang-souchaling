@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-生成《心房搜查令》最新现场放映版 PPT (11 页)。
+生成《心房搜查令》现场大屏放映版与全流程场控分镜案 PPT。
 
-规范与要求：
-1. 第 1 页封面：使用生图模型生成的 16:9 电影级海报图 cover.jpg，叠加微光质感标题卡片；
-2. 第 2-9 页八大分镜：纯场景大图模式，去掉所有顶部和底部文字，画面铺满 16:9 (13.333" x 7.5")，沉浸式放映；
-3. 第 10 页致谢页：使用生图模型生成的 16:9 剧院谢幕美图 ending.jpg，左右翼对称演职人员与鸣谢卡片，中心留白呈现舞台紫竹笛与清茶；
-4. 第 11 页后台场控表：保留完整的 9 行 6 列后台视听与道具调度执行表。
+重构优化核心：
+1. 彻底解耦大屏放映与后台场控：
+   - 《心房搜查令_现场大屏放映版.pptx》（10 页）：
+     P1 电影海报封面、P2-P9 纯场景大图（无字纯净电影画幅）、P10 剧院谢幕致谢页。
+     彻底剔除第 11 页场控表，规避现场投影切出后台表格的重大舞台事故！
+   - 《心房搜查令_全流程场控与分镜案.pptx》（11 页）：
+     保留第 11 页 9 行 6 列完整后台全流程场控表，供导演、灯光、音效人员推演或打印。
+2. 全流程注入【演讲者备注（Notes）】：
+   为每一页精准注入剧情节点、切页触发时机、灯光设计、音效配乐与放映员实操指南，
+   实现双屏演讲者视图下的精准专业场控。
+3. P10 致谢页金句与卡片视觉抗强光升级：
+   引入微光质感深色底衬面板与琥珀金饰边，杜绝剧院聚光灯冲刷字迹，字迹锐利醒目、极具专业典雅质感。
 """
 
 import os
@@ -14,36 +21,109 @@ import sys
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 
-def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx", template_pptx="心房搜查令_电影分镜剧照与台词字幕放映PPT.pptx"):
-    prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
-    blank_layout = prs.slide_layouts[6]
+# 详尽的放映员演讲者备注（Notes）
+SLIDE_NOTES = {
+    1: """【幕前准备 / 封面放映】
+• 剧情节点：大赛报幕、大幕未启、观众入场。
+• 触发切页时机：主持人报幕完毕，舞台灯光全暗，全场静止，赵学衡在桌前坐定吃面时，切入第 2 页（第 1 幕）。
+• 舞台灯光设计：全场暗光，聚光灯缓缓准备。
+• 现场音效与配乐：低沉机械钟表滴答声隐约渐入。
+• 放映员实操指南：保持封面稳定放映，等待舞台开场指令，切忌误触翻页。""",
 
+    2: """【第 1 幕：宿舍暗潮 · 寡淡清汤面与伪装】
+• 剧情节点：赵学衡深夜孤光吃清汤面嚼生大蒜，强装自律背诵中药方歌。
+• 触发切页时机：赵学衡大喊“进！门没锁！大晚上的谁啊？”，门口急促敲门声响起、郝朋程澄推门瞬间，切入第 3 页（第 2 幕）。
+• 舞台灯光设计：昏暗清冷台灯，局部顶光打在桌面，四周陷入暗影。
+• 现场音效与配乐：沉重机械钟表滴答声、压迫感低音铺垫。
+• 放映员实操指南：盯紧敲门动作与推门瞬间，迅速切页，配合走廊光倾泻。""",
+
+    3: """【第 2 幕：门口对峙 · 走廊白光与心理搜查官】
+• 剧情节点：郝朋夹公文夹推门而入，走廊光切入，赵学衡筷子悬停，郝朋挑明搜查任务。
+• 触发切页时机：赵学衡笑称“我就是个遵纪守法、本本分分的大三穷学生啊！”，郝朋回应“你是不是本分，看看就知道了。程澄，查一查他的桌面和公开记录”时，切入第 4 页（第 3 幕）。
+• 舞台灯光设计：房门骤开，走廊刺眼冷白强光斜切入室，强明暗反差剪影。
+• 现场音效与配乐：门骤开撞击声、心跳急促骤停音效。
+• 放映员实操指南：两人言语交锋，在郝朋下令搜查桌面时切页。""",
+
+    4: """【第 3 幕：宿舍交锋 · 打卡神话与助眠药单】
+• 剧情节点：程澄翻出100%打卡本，郝朋直击失眠多梦与助眠药单，出示通行证移步暗室铁柜。
+• 触发切页时机：郝朋展开通行证“既然书桌查不出什么，那咱们就换个地方——移步去你的专属‘大宅’看一看”，演员移步储物柜时，切入第 5 页（第 4 幕）。
+• 舞台灯光设计：桌面局部特写聚光，背景隐现微弱心电红光。
+• 现场音效与配乐：心跳重锤加速，低沉大提琴旋律压抑切入。
+• 放映员实操指南：郝朋亮出《心房关怀通行证》并移步铁柜时切页。""",
+
+    5: """【第 4 幕：暗室铁柜 · 三把铜锁与死守柜门】
+• 剧情节点：储物柜三把黄铜大锁，赵学衡以身死死挡柜，郝朋程澄合力拉开赵学衡、钥匙入锁。
+• 触发切页时机：程澄大喊“起开！”，钥匙入锁发出刺耳金属声、柜门猛然被拽开瞬间，切入第 6 页（第 5 幕）。
+• 舞台灯光设计：舞台骤暗，刺目冰蓝垂直追光打在储物柜上，两侧陷入深暗。
+• 现场音效与配乐：钥匙插入铜锁刺耳扭转声、沉重铁链撞击声。
+• 放映员实操指南：柜门拽开、开锁金属声响起的瞬间精准切页！""",
+
+    6: """【第 5 幕：书籍雪崩 · 资料海啸与痛哭溃堤】
+• 剧情节点：柜中讲义如雪崩倾倒，未拆封资料散落一地，赵学衡瘫坐痛哭崩溃，自白冒名顶替恐惧。
+• 触发切页时机：赵学衡嘶喊“我快被这些纸压死了！我快被逼疯了！！”，舞台静止抽泣，林凡携紫竹笛缓步上场时，切入第 7 页（第 6 幕）。
+• 舞台灯光设计：单束苍白顶光刺射倾泻的书海，戏剧大冲突追光。
+• 现场音效与配乐：低沉压抑弦乐极速高潮、重锤心跳轰鸣达到顶点。
+• 放映员实操指南：高潮哭诉结束，林凡上台递步时切入温情画面。""",
+
+    7: """【第 6 幕：破防与接纳 · 甩开应激到温茶抚慰】
+• 剧情节点：赵学衡应激甩手，林凡平视共情递上陈皮麦冬茶，郝朋温和剖析执念。
+• 触发切页时机：郝朋说“接纳自己的不完美，允许自己今天只是一棵刚刚破土的幼苗，不需要在一天之内长成参天大树”，赵学衡准备撕碎纸条时，切入第 8 页（第 7 幕）。
+• 舞台灯光设计：舞台静默片刻，温暖琥珀色漫射光渐亮，缓缓破除室内阴霾。
+• 现场音效与配乐：弦乐由激越转入舒缓长音，呼吸声逐渐趋于平稳。
+• 放映员实操指南：温情对话结束，纸条扬起撕碎、竹笛将起时切页。""",
+
+    8: """【第 7 幕：笛声晨光 · 紫竹清心与释然微笑】
+• 剧情节点：纸条撕碎成蝶飞扬，林凡现场吹奏紫竹笛《清心引》，程澄约定明天包子与草药园，赵学衡释怀微笑。
+• 触发切页时机：赵学衡笑称“好！去草药园！……郝委员，谢谢你们。这场搜查，把我心里发霉的角落，全都晒透了”，郝朋转向观众总结时，切入第 9 页（第 8 幕）。
+• 舞台灯光设计：清晨明媚阳光大面积漫射，如草药园般充满生机绿意。
+• 现场音效与配乐：现场竹笛独奏《清心引》清越响起，空灵流水古琴衬底。
+• 放映员实操指南：竹笛独奏段落保持画面，台词转向全场总结时切页。""",
+
+    9: """【第 8 幕：尾声谢幕 · 内经金句与四人鞠躬】
+• 剧情节点：郝朋面向全场观众从容朗诵《黄帝内经》经典名言，四位演员并肩而立。
+• 触发切页时机：郝朋朗诵完“恬淡虚无，真气从之；精神内守，病安从来！”，全场掌声响起、四人鞠躬时，切入第 10 页（致谢尾页）。
+• 舞台灯光设计：剧场温暖金黄色泛光全开，辉煌明亮。
+• 现场音效与配乐：温暖宏大终曲交响、全场热烈掌声混音。
+• 放映员实操指南：台词落地金句念完，鞠躬掌声切入致谢页！""",
+
+    10: """【第 10 页：致谢页 · 演职人员与特别鸣谢】
+• 剧情节点：全剧终谢幕，演员向观众深情鞠躬，大屏呈现演职人员表与鸣谢金句。
+• 舞台灯光设计：剧场全亮，观众席泛光。
+• 现场音效与配乐：谢幕背景交响乐持续播放。
+• 放映员实操指南：大屏定格展示此页，直到大幕完全闭合或主持人上台，严禁再次按翻页键！""",
+
+    11: """【第 11 页：后台全流程场控与视听调度表（仅供后台导演与技术组查阅）】
+• 本页为后台剧组全流程执行表，包含 8 幕角色走位、道具流转、灯光预设、音效节拍点与场控要点。
+• 供现场导演、灯光师、音效师推演、彩排或打印场控单使用。严禁在大屏向观众放映！"""
+}
+
+def get_img_path(filename):
+    paths_to_check = [
+        filename,
+        os.path.join("剧照", filename),
+        os.path.join(os.path.dirname(__file__), "..", "剧照", filename),
+        os.path.join(os.path.dirname(__file__), filename)
+    ]
+    for p in paths_to_check:
+        if os.path.exists(p):
+            return os.path.abspath(p)
+    return None
+
+def build_base_slides(prs):
+    blank_layout = prs.slide_layouts[6]
+    
     # 标准配色
     COLOR_BG = RGBColor(11, 14, 20)          # 极黑深蓝背景底色
-    COLOR_GOLD = RGBColor(230, 180, 70)      # 琥珀金
+    COLOR_GOLD = RGBColor(245, 205, 90)      # 亮琥珀金
     COLOR_WHITE = RGBColor(255, 255, 255)    # 纯白
-    COLOR_SUBTITLE = RGBColor(220, 225, 235) # 字幕白
+    COLOR_SUBTITLE = RGBColor(220, 225, 235) # 字幕柔白
     COLOR_DIM = RGBColor(140, 148, 165)      # 辅文字灰
-    COLOR_CARD_BG = RGBColor(12, 16, 24)     # 半透明质感深色底板
-    COLOR_BORDER = RGBColor(50, 65, 90)      # 微光边缘色
-    COLOR_GOLD_BORDER = RGBColor(180, 140, 50)# 金色边框
-
-    def get_img_path(filename):
-        paths_to_check = [
-            filename,
-            os.path.join("剧照", filename),
-            os.path.join(os.path.dirname(__file__), "..", "剧照", filename),
-            os.path.join(os.path.dirname(__file__), filename)
-        ]
-        for p in paths_to_check:
-            if os.path.exists(p):
-                return os.path.abspath(p)
-        return None
+    COLOR_CARD_BG = RGBColor(12, 16, 24)     # 质感深色底板
+    COLOR_BORDER = RGBColor(60, 75, 100)     # 微光边缘色
+    COLOR_GOLD_BORDER = RGBColor(190, 150, 60)# 金色边框
 
     # ==================== 第 1 页：封面 (cover.jpg) ====================
     slide_cov = prs.slides.add_slide(blank_layout)
@@ -80,11 +160,13 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
     tf_cov_bot = tb_cov_bot.text_frame
     tf_cov_bot.word_wrap = True
     p_bot = tf_cov_bot.paragraphs[0]
-    p_bot.text = "电影分镜剧照与现场放映演示文稿 · 最终放映版  ｜  《心房搜查令》  ｜  16:9 全屏画幅"
+    p_bot.text = "电影分镜剧照与现场放映演示文稿  ｜  《心房搜查令》  ｜  16:9 全屏画幅"
     p_bot.font.size = Pt(9.5)
     p_bot.font.color.rgb = COLOR_DIM
     p_bot.font.name = "Microsoft YaHei"
     p_bot.alignment = PP_ALIGN.CENTER
+
+    slide_cov.notes_slide.notes_text_frame.text = SLIDE_NOTES[1]
 
     # ==================== 第 2 至 9 页：八大分镜纯场景图 ====================
     scenes = [
@@ -103,12 +185,12 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
         img_path = get_img_path(img_file)
         if img_path:
             slide.shapes.add_picture(img_path, Inches(0), Inches(0), width=Inches(13.333), height=Inches(7.5))
-            print(f"  ✓ 第 {idx + 1:02d} 页：已载入 16:9 纯场景大图 [{img_file}]")
         else:
-            print(f"  ! 警告：未找到图片 [{img_file}]")
             bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
             bg.fill.solid()
             bg.fill.fore_color.rgb = COLOR_BG
+            
+        slide.notes_slide.notes_text_frame.text = SLIDE_NOTES[idx + 1]
 
     # ==================== 第 10 页：片尾致谢页 (ending.jpg) ====================
     slide_thx = prs.slides.add_slide(blank_layout)
@@ -120,10 +202,16 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
         bg_thx.fill.solid()
         bg_thx.fill.fore_color.rgb = COLOR_BG
 
-    # 顶部金句横幅（居中悬浮于顶光之上，庄严宁静）
-    quote_bar = slide_thx.shapes.add_textbox(Inches(1.5), Inches(0.2), Inches(10.333), Inches(0.5))
-    qtf = quote_bar.text_frame
+    # 1. 顶部金句横幅：采用质感深色微光防冲刷底衬胶囊面板
+    quote_panel = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.8), Inches(0.22), Inches(9.733), Inches(0.58))
+    quote_panel.fill.solid()
+    quote_panel.fill.fore_color.rgb = COLOR_BG
+    quote_panel.line.color.rgb = COLOR_GOLD_BORDER
+    quote_panel.line.width = Pt(1.5)
+    
+    qtf = quote_panel.text_frame
     qtf.word_wrap = True
+    qtf.vertical_anchor = MSO_ANCHOR.MIDDLE
     qp = qtf.paragraphs[0]
     qp.text = "“恬淡虚无，真气从之；精神内守，病安从来！”  ——《黄帝内经·素问》"
     qp.font.size = Pt(13.5)
@@ -132,17 +220,22 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
     qp.font.name = "Microsoft YaHei"
     qp.alignment = PP_ALIGN.CENTER
 
-    # 左翼：演职人员表（置于左侧红丝绒暗影区域，纯透明悬浮排版）
-    card_left = slide_thx.shapes.add_textbox(Inches(0.6), Inches(1.75), Inches(4.3), Inches(4.8))
-    cl_tf = card_left.text_frame
+    # 2. 左翼卡片：演职人员表（高质感深色底衬面板，抵御舞台光晕干扰）
+    card_l_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.55), Inches(1.5), Inches(4.55), Inches(5.2))
+    card_l_bg.fill.solid()
+    card_l_bg.fill.fore_color.rgb = COLOR_CARD_BG
+    card_l_bg.line.color.rgb = COLOR_BORDER
+    card_l_bg.line.width = Pt(1.0)
+    
+    cl_tf = card_l_bg.text_frame
     cl_tf.word_wrap = True
-    cl_tf.margin_left = Inches(0.1)
-    cl_tf.margin_right = Inches(0.1)
-    cl_tf.margin_top = Inches(0.1)
+    cl_tf.margin_left = Inches(0.18)
+    cl_tf.margin_right = Inches(0.18)
+    cl_tf.margin_top = Inches(0.18)
 
     cl_p0 = cl_tf.paragraphs[0]
     cl_p0.text = "【 演职人员表 · CAST & CREW 】"
-    cl_p0.font.size = Pt(13)
+    cl_p0.font.size = Pt(12.5)
     cl_p0.font.bold = True
     cl_p0.font.color.rgb = COLOR_GOLD
     cl_p0.font.name = "Microsoft YaHei"
@@ -159,28 +252,33 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
         p_c = cl_tf.add_paragraph()
         r1 = p_c.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(10.5)
+        r1.font.size = Pt(10)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_c.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(10)
+        r2.font.size = Pt(9.5)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
-        p_c.space_after = Pt(6)
+        p_c.space_after = Pt(7)
 
-    # 右翼：特别鸣谢与致谢寄语（置于右侧红丝绒暗影区域，纯透明悬浮排版）
-    card_right = slide_thx.shapes.add_textbox(Inches(8.433), Inches(1.75), Inches(4.3), Inches(4.8))
-    cr_tf = card_right.text_frame
+    # 3. 右翼卡片：特别鸣谢与致谢寄语（高质感深色底衬面板）
+    card_r_bg = slide_thx.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.233), Inches(1.5), Inches(4.55), Inches(5.2))
+    card_r_bg.fill.solid()
+    card_r_bg.fill.fore_color.rgb = COLOR_CARD_BG
+    card_r_bg.line.color.rgb = COLOR_BORDER
+    card_r_bg.line.width = Pt(1.0)
+    
+    cr_tf = card_r_bg.text_frame
     cr_tf.word_wrap = True
-    cr_tf.margin_left = Inches(0.1)
-    cr_tf.margin_right = Inches(0.1)
-    cr_tf.margin_top = Inches(0.1)
+    cr_tf.margin_left = Inches(0.18)
+    cr_tf.margin_right = Inches(0.18)
+    cr_tf.margin_top = Inches(0.18)
 
     cr_p0 = cr_tf.paragraphs[0]
     cr_p0.text = "【 特别鸣谢 · SPECIAL THANKS 】"
-    cr_p0.font.size = Pt(13)
+    cr_p0.font.size = Pt(12.5)
     cr_p0.font.bold = True
     cr_p0.font.color.rgb = COLOR_GOLD
     cr_p0.font.name = "Microsoft YaHei"
@@ -197,18 +295,27 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
         p_t = cr_tf.add_paragraph()
         r1 = p_t.add_run()
         r1.text = f"• {role}："
-        r1.font.size = Pt(10.5)
+        r1.font.size = Pt(10)
         r1.font.bold = True
         r1.font.color.rgb = COLOR_WHITE
         r1.font.name = "Microsoft YaHei"
         r2 = p_t.add_run()
         r2.text = f" {desc}"
-        r2.font.size = Pt(10)
+        r2.font.size = Pt(9.5)
         r2.font.color.rgb = COLOR_SUBTITLE
         r2.font.name = "Microsoft YaHei"
-        p_t.space_after = Pt(6)
+        p_t.space_after = Pt(7)
 
-    # ==================== 第 11 页：后台全流程场控与视听调度表 ====================
+    slide_thx.notes_slide.notes_text_frame.text = SLIDE_NOTES[10]
+    return prs
+
+def add_stage_control_slide(prs):
+    blank_layout = prs.slide_layouts[6]
+    COLOR_BG = RGBColor(11, 14, 20)
+    COLOR_GOLD = RGBColor(245, 205, 90)
+    COLOR_WHITE = RGBColor(255, 255, 255)
+    COLOR_SUBTITLE = RGBColor(220, 225, 235)
+
     slide_back = prs.slides.add_slide(blank_layout)
     bg_back = slide_back.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
     bg_back.fill.solid()
@@ -227,7 +334,7 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
     pb0.font.name = "Microsoft YaHei"
 
     pb1 = tf_b.add_paragraph()
-    pb1.text = "舞台剧组全流程精细化执行表 · 覆盖 8 幕分镜角色走位、道具流转、灯光预设与音效节拍点"
+    pb1.text = "舞台剧组全流程精细化执行表 · 覆盖 8 幕分镜角色走位、道具流转、灯光预设与音效节拍点（仅供后台使用）"
     pb1.font.size = Pt(11)
     pb1.font.color.rgb = COLOR_GOLD
     pb1.font.name = "Microsoft YaHei"
@@ -292,16 +399,35 @@ def build_presentation(output_pptx="心房搜查令_最终现场放映版.pptx",
             else:
                 p.font.color.rgb = COLOR_SUBTITLE
 
-    prs.save(output_pptx)
-    print(f"\n生成成功！放映文件已保存至: {output_pptx}")
-    print(f"总计 {len(prs.slides)} 页，母版比例 16:9。")
+    slide_back.notes_slide.notes_text_frame.text = SLIDE_NOTES[11]
 
-    if template_pptx:
-        prs.save(template_pptx)
-        print(f"同步更新模板文件: {template_pptx}")
+def build_all_presentations():
+    # 1. 现场大屏放映版（10 页，无后台场控表，零失误隐患）
+    prs_screen = Presentation()
+    prs_screen.slide_width = Inches(13.333)
+    prs_screen.slide_height = Inches(7.5)
+    build_base_slides(prs_screen)
+    
+    screen_path = "心房搜查令_现场大屏放映版.pptx"
+    prs_screen.save(screen_path)
+    print(f"✓ 现场大屏放映版生成成功: {screen_path} (共 {len(prs_screen.slides)} 页)")
 
-    return output_pptx
+    # 同步更新既有放映版文件名，杜绝历史引用失误
+    prs_screen.save("心房搜查令_最终现场放映版.pptx")
+    prs_screen.save("心房搜查令_电影分镜剧照与台词字幕放映PPT.pptx")
+    print("✓ 同步更新历史放映文件（统一为 10 页安全放映架构）")
+
+    # 2. 全流程场控与分镜案（11 页，含后台场控表与推演执行案）
+    prs_control = Presentation()
+    prs_control.slide_width = Inches(13.333)
+    prs_control.slide_height = Inches(7.5)
+    build_base_slides(prs_control)
+    add_stage_control_slide(prs_control)
+    
+    control_path = "心房搜查令_全流程场控与分镜案.pptx"
+    prs_control.save(control_path)
+    print(f"✓ 全流程场控与分镜案生成成功: {control_path} (共 {len(prs_control.slides)} 页)")
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
-    build_presentation()
+    build_all_presentations()
